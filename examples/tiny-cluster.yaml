@@ -64,6 +64,8 @@ spec:
     druid.metadata.storage.connector.host=localhost
     druid.metadata.storage.connector.port=1527
     druid.metadata.storage.connector.createTables=true
+    # alternatively, you can load from the environment variable using the following
+    # druid.metadata.storage.connector.connectURI={"type":"environment","variable":"CONNECTOR_URI"}
 
     # Deep Storage
     druid.storage.type=local
@@ -334,7 +336,7 @@ spec:
       extra.jvm.options: |-
         -Xmx512M
         -Xms512M
-          
+
     routers:
       nodeType: "router"
       druid.port: 8088
@@ -354,7 +356,7 @@ spec:
         druid.router.coordinatorServiceName=druid/coordinator
 
         # Management proxy to coordinator / overlord: required for unified web console.
-        druid.router.managementProxy.enabled=true       
+        druid.router.managementProxy.enabled=true
       extra.jvm.options: |-
         -Xmx512M
         -Xms512M

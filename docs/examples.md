@@ -1,6 +1,8 @@
-## Example NodeSpec Supporting Mulitple Key/Values
+# Druid Operator Examples
 
-```
+## Example NodeSpec Supporting Multiple Key/Values
+
+```yaml
     middlemanagers:
       podAnnotations:
         type: middlemanager
@@ -8,15 +10,12 @@
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
-              -
-                matchExpressions:
-                  -
-                    key: node-type
+              - matchExpressions:
+                  - key: node-type
                     operator: In
                     values:
                       - druid-data
       tolerations:
-       -
          effect: NoSchedule
          key: node-role.kubernetes.io/master
          operator: Exists
@@ -29,8 +28,7 @@
       podDisruptionBudgetSpec:
         maxUnavailable: 1
       ports:
-        -
-          containerPort: 8100
+        - containerPort: 8100
           name: peon-0
       replicas: 1
       resources:
@@ -63,18 +61,15 @@
           druid.indexer.fork.property.druid.processing.buffer.sizeBytes=100000000
           druid.indexer.fork.property.druid.processing.numThreads=1
       services:
-        -
-          spec:
+        - spec:
             clusterIP: None
             ports:
-              -
-                name: tcp-service-port
+              - name: tcp-service-port
                 port: 8091
                 targetPort: 8091
             type: ClusterIP
       volumeClaimTemplates:
-        -
-          metadata:
+        - metadata:
             name: data-volume
           spec:
             accessModes:
@@ -84,8 +79,7 @@
                 storage: 30Gi
             storageClassName: zone-a-storage
       volumeMounts:
-        -
-          mountPath: /druid/data
+        - mountPath: /druid/data
           name: data-volume
       containerSecurityContext:
         fsGroup: 1001
@@ -108,13 +102,12 @@
              target:
                type: Utilization
                averageUtilization: 50
-
 ```
 
 ## Configure Ingress
 
-```
- brokers:
+```yaml
+brokers:
   nodeType: "broker"
   druid.port: 8080
   ingressAnnotations:
@@ -138,9 +131,9 @@
       secretName: tls-broker-druid-cluster
 ```
 
-## Configure Deployments 
+## Configure Deployments
 
-```
+```yaml
   nodes:
     brokers:
       kind: Deployment
@@ -155,8 +148,8 @@
 
 ## Configure Hot/Cold for Historicals
 
-```
-  hot:
+```yaml
+    hot:
     druid.port: 8083
     env:
     - name: DRUID_XMS
@@ -190,7 +183,7 @@
         requests:
         cpu: 1
         memory: 1Gi
-    runtime.properties: 
+    runtime.properties:
         druid.plaintextPort=8083
         druid.service=druid/historical/hot
         ...
@@ -231,16 +224,17 @@
           requests:
             cpu: 1
             memory: 1Gi
-        runtime.properties: 
+        runtime.properties:
           druid.plaintextPort=8083
           druid.service=druid/historical/cold
           ...
           ...
           ...
 ```
+
 ## Configure Additional Containers
 
-```
+```yaml
   additionalContainer:
     - image: universalforwarder-sidekick:next
       containerName: forwarder
@@ -269,4 +263,45 @@
         - -application=application
         - -instance=instance
         - -logFiles=logFiles
+```
+
+## Using Environment Variables in common.runtime.properties
+
+You can use environment variables in the `*.properties` section of your Druid configuration. This feature allows for more flexible and secure configuration management, especially for sensitive information or values that might change between environments.
+
+To use an environment variable, use the following format:
+
+```yaml
+property_name={"type":"environment","variable":"ENVIRONMENT_VARIABLE_NAME"}
+```
+
+Here's an example of how you might use this in your `common.runtime.properties`:
+
+```yaml
+common.runtime.properties: |
+  # Zookeeper
+  druid.zk.service.host=tiny-cluster-zk-0.tiny-cluster-zk
+  druid.zk.paths.base=/druid
+  druid.zk.service.compress=false
+
+  # Metadata Store
+  druid.metadata.storage.type=derby
+  druid.metadata.storage.connector.connectURI={"type":"environment","variable":"CONNECTOR_URI"}
+  druid.metadata.storage.connector.host={"type":"environment","variable":"DB_HOST"}
+  druid.metadata.storage.connector.port={"type":"environment","variable":"DB_PORT"}
+  druid.metadata.storage.connector.createTables=true
+
+```
+
+In this example, values for `CONNECTOR_URI`, `DB_HOST`, `DB_PORT` will be pulled from environment variables, allowing you to set these values separately from your Druid configuration file.
+
+Remember to ensure that these environment variables are properly set in your Kubernetes environment, typically through Secrets or ConfigMaps, before deploying your Druid cluster.
+
+```yaml
+  env:
+    - name: CONNECTOR_URI
+      valueFrom:
+        secretKeyRef:
+          key: connector-uri
+          name: druid-secrets
 ```
